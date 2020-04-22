@@ -8,11 +8,32 @@
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <canvas id="gameCanvas" width="40" height="30" ></canvas>
+  <div>
+    <canvas id="gameCanvas" ></canvas>
+    <div id="scoring">
+      <ul id="scorelist">
+      </ul>
+    </div>
+  </div>
+  <div id="moveButtons">
+    <div>
+      <button id="ArrowLeft">←</button>
+    </div>
+    <div>
+      <button id="ArrowUp">↑</button>
+      <button id="ArrowDown">↓</button>    
+    </div>
+    <div>
+      <button id="ArrowRight">→</button>
+    </div>
+  </div>
   <script type="module">
     import createKeyboardListener from './keyboard-listener.js'
     import renderScreen from './renderScreen.js'
     import createGame from './game.js'
+
+    const screen = document.getElementById('gameCanvas');
+    const scoreTable = document.getElementById('scorelist')
 
     const game = createGame();
     const keyboardListener = createKeyboardListener(document);
@@ -21,18 +42,20 @@
 
     socket.on('connect', () => {
       const playerId = socket.id;
-      console.log(`Player connected on Client with id: ${playerId}`)    
+      console.log(`Player connected on Client with id: ${playerId}`)
 
-      const screen = document.getElementById('gameCanvas');
       renderScreen(screen, game, requestAnimationFrame, playerId);
     })
 
     socket.on( 'setup', state => {
       const playerId = socket.id;
-      console.log(`>Receiving "Setup" event from server`);
-      console.log(state);
 
+      console.log(`>Receiving "Setup" event from server`);
+      
       game.setState(state);
+      
+      screen.width = game.state.canvasWidth;
+      screen.height = game.state.canvasHeight;
 
       keyboardListener.registerPlayer(playerId)
       keyboardListener.subscribe(game.movePlayer)
@@ -42,8 +65,38 @@
     })
 
     socket.on( '@game/addPlayer', (command) => {
+      const playerId = socket.id
       console.log(`Receiving ${command.type} -> ${command.playerId}`)
       game.addPlayer(command);
+    })
+
+    socket.on( '@game/updateScoreState', command => {
+      const scoreState = command.command;
+      scoreTable.innerHTML = '';
+      for( const player in scoreState ){
+        const li = document.createElement('li'); li.id = player
+        li.innerHTML = `Jogador: <span>${player}</span> - Pontos: <code>${scoreState[player].score}</code>`
+        scoreTable.appendChild(li)
+      }
+    });
+
+    socket.on( '@game/updateScorePlayer', command => {
+      console.log(`Updating Score from ${command.playerId}`);
+      const player = command.playerState
+      const currrentPlayerId = command.playerId;
+      const playerScoreTable = document.getElementById('scorelist')      
+      const li = document.getElementById(currrentPlayerId)
+      console.log(li);
+      li.innerHTML = `Jogador: <span>${currrentPlayerId}</span> - Pontos: <code>0</code>`
+      playerScoreTable.appendChild(li)
+      
+      const playerScoreId = li.querySelector('span');
+      const playerScore = li.querySelector('code');
+      
+      playerScoreId.innerHTML = currrentPlayerId;
+      playerScore.innerHTML = player.score
+      
+      
     })
 
     socket.on( '@game/removePlayer', (command) => {

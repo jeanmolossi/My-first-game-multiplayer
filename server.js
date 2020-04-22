@@ -14,7 +14,6 @@ const game = createGame();
 game.start();
 
 game.subscribe((command) => {
-  console.log(`> Emitting ${command.type}`)
   io.emit(command.type, command)
 })
 
@@ -25,12 +24,13 @@ io.on( 'connection', socket => {
   console.log(`> Player connected on Server with id: ${playerId}`);
   
   game.addPlayer({ playerId });
-
+  game.updateScoreState();
   socket.emit('setup', game.state)
 
   socket.on('disconnect', () => {
     game.removePlayer({ playerId })
     console.log(`> Player ${playerId} disconnected`)
+    game.updateScoreState();
   })
 
   socket.on('@game/movePlayer', command => {

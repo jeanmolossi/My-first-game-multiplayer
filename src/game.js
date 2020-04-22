@@ -1,7 +1,7 @@
 export default function createGame(){
   const state = {
-    canvasWidth: 39,
-    canvasHeight: 29,
+    canvasWidth: 40,
+    canvasHeight: 30,
     players: {},
     fruits: {}
   }
@@ -33,18 +33,20 @@ export default function createGame(){
     const playerId = playerInitialState.playerId;
     const playerX = 'playerX' in playerInitialState ? playerInitialState.playerX : Math.floor(Math.random() * state.canvasWidth) ;
     const playerY = 'playerY' in playerInitialState ? playerInitialState.playerY : Math.floor(Math.random() * state.canvasHeight) ;
-    
+    const score = 0
 
     state.players[playerId] = {
       x: playerX,
-      y: playerY
+      y: playerY,
+      score
     }
 
     notifyAll({
       type: '@game/addPlayer',
       playerId,
       playerX,
-      playerY
+      playerY,
+      score
     })
   }
 
@@ -95,22 +97,23 @@ export default function createGame(){
         if( player.y - 1 >= 0 ) player.y -= 1; return
       },
       ArrowDown(player) {
-        if( player.y + 1 <= state.canvasHeight ) player.y += 1; return
+        if( player.y + 1 < state.canvasHeight ) player.y += 1; return
       },
       ArrowLeft(player) {
         if( player.x - 1 >= 0) player.x -= 1; return
       },
       ArrowRight(player) {
-        if( player.x + 1 <= state.canvasWidth) player.x += 1; return
+        if( player.x + 1 < state.canvasWidth) player.x += 1; return
       },
     }
 
     const { playerId, keyPressed } = command;
     const player = state.players[playerId];
     const moveFunction = acceptedMoves[keyPressed]
-    if( player && moveFunction )
+    if( player && moveFunction ){
       moveFunction(player);
       checkForFruitCollition(playerId);
+    }
     return
   }
 
@@ -119,14 +122,29 @@ export default function createGame(){
 
     for( const fruitId in state.fruits ){
       const fruit = state.fruits[fruitId];
-      console.log(`Checking ${playerId} and ${fruitId}`);
 
       if( player.x === fruit.x && player.y === fruit.y ){
         console.log(`Colision detected between ${playerId} and ${fruitId}`);
+        
+        state.players[playerId].score += 1;
+        notifyAll({
+          type: '@game/updateScorePlayer',
+          playerId,
+          playerState: state.players[playerId]
+        })
         removeFruit({fruitId});
+        
+        console.log(`Points from ${playerId} -> ${player.score}`);
       }
     }
     
+  }
+
+  function updateScoreState(){
+    notifyAll({
+      type: '@game/updateScoreState',
+      command: state.players
+    })
   }
 
   return {
@@ -139,6 +157,7 @@ export default function createGame(){
     setState,
     state,
     subscribe,
+    updateScoreState,
     start
   };
 }
