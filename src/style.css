@@ -1,0 +1,16 @@
+*{
+  margin: 0 ;
+  padding: 0;
+}
+html, body{
+  width: 100vh;
+  height: 100vh;
+}
+#gameCanvas {
+  border: 10px solid #e3e3e3;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  image-rendering: -moz-crisp-edges;
+  width: 800px;
+  height: 600px;
+}

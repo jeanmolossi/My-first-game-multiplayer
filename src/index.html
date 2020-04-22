@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game try</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <canvas id="gameCanvas" width="40" height="30" ></canvas>
+  <script type="module">
+    import createKeyboardListener from './keyboard-listener.js'
+    import renderScreen from './renderScreen.js'
+    import createGame from './game.js'
+
+    const game = createGame();
+    const keyboardListener = createKeyboardListener(document);
+    
+    const socket = io();
+
+    socket.on('connect', () => {
+      const playerId = socket.id;
+      console.log(`Player connected on Client with id: ${playerId}`)    
+
+      const screen = document.getElementById('gameCanvas');
+      renderScreen(screen, game, requestAnimationFrame, playerId);
+    })
+
+    socket.on( 'setup', state => {
+      const playerId = socket.id;
+      console.log(`>Receiving "Setup" event from server`);
+      console.log(state);
+
+      game.setState(state);
+
+      keyboardListener.registerPlayer(playerId)
+      keyboardListener.subscribe(game.movePlayer)
+      keyboardListener.subscribe(command => {
+        socket.emit( command.type, command )
+      })
+    })
+
+    socket.on( '@game/addPlayer', (command) => {
+      console.log(`Receiving ${command.type} -> ${command.playerId}`)
+      game.addPlayer(command);
+    })
+
+    socket.on( '@game/removePlayer', (command) => {
+      console.log(`Receiving ${command.type} -> ${command.playerId}`)
+      game.removePlayer(command);
+    })
+
+    socket.on( '@game/movePlayer', (command) => {
+      console.log(`Receiving ${command.type} -> ${command.playerId}`)
+      
+      const playerId = socket.id;
+
+      if( playerId !== command.playerId ){        
+        game.movePlayer(command);
+      }
+    })
+
+    socket.on( '@game/addFruit', command => {
+      game.addFruit(command);
+    })
+
+    socket.on( '@game/removeFruit', command => {
+      game.removeFruit(command);
+    })
+
+    
+  </script>
+</body>
+</html>
